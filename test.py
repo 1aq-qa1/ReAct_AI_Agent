@@ -1,26 +1,30 @@
-import ollama
-import requests
-import json
+from dotenv import load_dotenv
+from openai import OpenAI
+import os
 
-url = 'http://192.168.110.131:8005/api/generate'
+load_dotenv()
+client = OpenAI(
+    # 如果没有配置环境变量，请用阿里云百炼API Key替换：api_key="sk-xxx"
+    api_key=os.getenv("QW_API_KEY"),
+    base_url="https://dashscope.aliyuncs.com/compatible-mode/v1",
+)
 
-headers = {'Content-Type': 'application/json'}
-
-payload = {
-    "model": "llama3.1:8b",
-    "prompt": "你好",
-    "stream": False,
-    "temperature": 0.8
-}
-
-
-response = requests.post(url=url, headers=headers, data=json.dumps(payload))
-
-if response.status_code == 200:
-    response_text = response.text
-    data = json.loads(response_text)
-    actual_response = data['response']
-    print(actual_response)
-else:
-    print("Error:", response.status_code, response.text)
-
+messages = [{"role": "user", "content": "你是谁"}]
+completion = client.chat.completions.create(
+    model="qwen3-max",  # 您可以按需更换为其它深度思考模型
+    messages=messages,
+    extra_body={"enable_thinking": True},
+    stream=True
+)
+is_answering = False  # 是否进入回复阶段
+print("\n" + "=" * 20 + "思考过程" + "=" * 20)
+for chunk in completion:
+    delta = chunk.choices[0].delta
+    if hasattr(delta, "reasoning_content") and delta.reasoning_content is not None:
+        if not is_answering:
+            print(delta.reasoning_content, end="", flush=True)
+    if hasattr(delta, "content") and delta.content:
+        if not is_answering:
+            print("\n" + "=" * 20 + "完整回复" + "=" * 20)
+            is_answering = True
+        print(delta.content, end="", flush=True)

@@ -18,8 +18,11 @@ def load_config():
 
 
 def get_client(config):
-    if config['openai'].get('use_model', True):
-        return OpenAI(api_key=os.environ.get("API_KEY"))
+    if config['deepseek'].get('use_model'):
+        return OpenAI(api_key=os.environ.get("API_KEY"), base_url="https://api.deepseek.com/v1")
+    elif config['qwen3'].get('use_model'):
+        return OpenAI(api_key=os.environ.get("QW_API_KEY"),
+                        base_url="https://dashscope.aliyuncs.com/compatible-mode/v1")
     else:
         return OllamaClient()
 
@@ -28,8 +31,10 @@ def get_max_iterations(config):
     # 选择使用的模型来确定最大迭代次数
     if config['ollama']['use_model']:
         return config['ollama']['max_iterations']
-    elif config['openai']['use_model']:
-        return config['openai']['max_iterations']
+    elif config['deepseek'].get('use_model'):
+        return config['deepseek']['max_iterations']
+    elif config['qwen3'].get('use_model'):
+        return config['qwen3']['max_iterations']
     else:
         return 10  # 如果没有启用任何模型，可以设置一个默认的迭代次数
 
@@ -37,7 +42,7 @@ def get_max_iterations(config):
 def main():
     config = load_config()
     try:
-        # 获取服务端实例（OpenAI API 或者 Ollama Resuful API）
+        # 获取服务端实例（DeepSeek API 或者 Ollama Restful API）
         client = get_client(config)
 
         # 实例化Agent
@@ -64,6 +69,7 @@ def main():
         while iteration < max_iterations:  # 内部循环用于处理每一条 query
             try:
                 result = agent(query)
+                print(f"============AI助手回复：\n{result}\n===============")
                 action_re = re.compile('^Action: (\w+): (.*)$')
                 actions = [action_re.match(a) for a in result.split('\n') if action_re.match(a)]
                 if actions:
@@ -74,6 +80,7 @@ def main():
                         try:
                             observation = tools[tool_name](tool_args)
                             query = f"Observation: {observation}"
+                            print(f"============Observation: {observation}\n===============")
                         except Exception as e:
                             query = f"Observation: Error occurred while executing the tool: {str(e)}"
                     else:

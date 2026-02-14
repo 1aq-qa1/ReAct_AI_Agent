@@ -1,4 +1,11 @@
+import os
+
+from dotenv import load_dotenv
+
 from op_llm_client import OllamaClient
+
+# 加载.env文件的配置信息
+load_dotenv()
 
 
 class CustomerServiceAgent:
@@ -52,6 +59,11 @@ class CustomerServiceAgent:
         Now it's your turn:
         """.strip()
         self.messages.append({"role": "system", "content": self.system_prompt})
+        if self.config['deepseek']['use_model']:
+            self.model_name = self.config['deepseek']['model_name']
+        else:
+            self.model_name = self.config['qwen3']['model_name']
+        print("=====使用的模型{}=====".format(self.model_name))
 
     # __call__ 方法可以使得一个类的实例可以被像函数那样调用，提供了类实例的“可调用”能力。
     # 当使用类实例后面跟着括号并传递参数时，就会触发 __call__ 方法。
@@ -82,9 +94,9 @@ class CustomerServiceAgent:
             else:
                 raise ValueError(f"Unexpected response structure from OllamaClient: {completion}")
         else:
-            # 使用 OpenAI 的 GPT 系列模型
+            # 使用 在线 模型
             completion = self.client.chat.completions.create(
-                model=self.config['openai']['model_name'],
+                model=self.model_name,
                 messages=self.messages,
             )
             response = completion.choices[0].message.content
@@ -102,11 +114,13 @@ if __name__ == '__main__':
     with open('config.json', 'r') as f:
         config = json.load(f)
 
-    # 测试当前环境下是否可以连通OpenAI的GPT模型，如果能正常返回回复，则说明当前环境的网络正常
-    client = OpenAI()
+    # 测试当前环境下是否可以连通 DeepSeek 模型，如果能正常返回回复，则说明当前环境的网络正常
+    client = OpenAI(api_key=os.environ.get("QW_API_KEY"),
+                    base_url="https://dashscope.aliyuncs.com/compatible-mode/v1")
     completion = client.chat.completions.create(
-        model=config['openai']['model_name'],
-        messages=[{"role": "user", "content": "你好，测试OpenAI模型在当前环境下的连通性"}],
-        temperature=config['openai']['temperature'],
+        model=config['qwen3']['model_name'],
+        messages=[{"role": "user", "content": "你好，测试DeepSeek模型在当前环境下的连通性"}],
+        temperature=config['deepseek']['temperature'],
+
     )
     print(completion.choices[0].message.content)

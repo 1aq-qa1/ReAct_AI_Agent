@@ -5,10 +5,18 @@
         "temperature": 1.0,
         "max_iterations": 20
     },
-    "openai": {
+    "deepseek": {
+        "use_model": false,
+        "model_name": "deepseek-chat",
+        "temperature": 1.0,
+        "max_iterations": 20
+    },
+    "qwen3": {
         "use_model": true,
-        "model_name": "gpt-4o",
+        "model_name": "qwen3-max",
         "temperature": 1.0,
         "max_iterations": 20
     }
+
+
 }
